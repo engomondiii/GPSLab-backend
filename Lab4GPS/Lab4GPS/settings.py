@@ -17,18 +17,17 @@ from datetime import timedelta  # For JWT token expiry
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^@u+u+p5^z6i359+lr@l-4(!p&3nmw3xgz0+7%2fb0gd_w^cn='
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-^@u+u+p5^z6i359+lr@l-4(!p&3nmw3xgz0+7%2fb0gd_w^cn=')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-# Add the ngrok forwarding URL and localhost to allowed hosts
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.ngrok-free.app']  # Add your ngrok domain here
+# Add your Vercel domain and localhost to allowed hosts
+ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
 
 # CORS settings to allow your frontend to access the backend
 INSTALLED_APPS = [
@@ -63,12 +62,19 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Allow CORS for the frontend (ngrok base URL)
+# Allow CORS for the frontend (React app on Vercel)
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Replace with your frontend's local URL
-    "https://ae62-102-213-251-138.ngrok-free.app",  # Add the ngrok URL here
-    "https://lab4gps-platform.vercel.app",
+    "https://gpslab.vercel.app",  # Replace with your actual React frontend URL
 ]
+
+# Static files handling (Whitenoise)
+INSTALLED_APPS += [
+    'whitenoise.runserver_nostatic',
+]
+
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Root URL configuration
 ROOT_URLCONF = 'Lab4GPS.urls'
@@ -91,17 +97,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Lab4GPS.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'postgres'),  # The database name
+        'USER': os.getenv('DB_USER', 'postgres.vxlkimobpxdgwfqqrtlj'),  # The user from Supabase
+        'PASSWORD': os.getenv('DB_PASSWORD', 'gpslab@gpslab@2025'),  # Password stored in environment variable
+        'HOST': os.getenv('DB_HOST', 'aws-0-ap-northeast-2.pooler.supabase.com'),  # The host from Supabase
+        'PORT': os.getenv('DB_PORT', '6543'),  # The port from Supabase
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -121,7 +129,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -133,17 +140,15 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'collected_static')  # Added to fix collectstatic error
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (e.g., uploaded files)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -152,7 +157,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model (from Auths app)
 AUTH_USER_MODEL = 'Auths.CustomUser'
-
 
 # DRF Settings
 REST_FRAMEWORK = {
@@ -174,7 +178,6 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
-
 # Email Backend (Gmail) for sending emails
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
@@ -183,3 +186,12 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'lab4gps@gmail.com')  # Replace with your email
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'tsji hgrs svst lupv')  # Replace with your app password
 DEFAULT_FROM_EMAIL = 'Lab4GPS <lab4gps@gmail.com>'
+
+# Security Settings
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 3600
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+X_FRAME_OPTIONS = 'DENY'
